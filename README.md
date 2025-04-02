@@ -29,5 +29,3 @@ Welcome to the **Ice Breaker Game**! This interactive and fun game challenges yo
 
 ![image](https://github.com/user-attachments/assets/11288a4a-5d6d-4f30-912e-94f73bc4f433)
 
-![image](https://github.com/user-attachments/assets/5545265d-4533-43c3-8c7f-48be81a98117)
-
