@@ -152,6 +152,8 @@
             }
 
             if (destroyedBricks === brickRowCount * brickColumnCount) {
+                dy=0;
+                dx=0;
                 Swal.fire({
                     title: 'You Win!',
                     text: 'All ice melted!',
