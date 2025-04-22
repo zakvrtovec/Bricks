@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ice Breaker</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="icon" href="img/ice1.png">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <!-- Scaled game wrapper -->
+    <div id="gameWrapper"> 
+        <h1 id="gameTitle">Ice Breaker</h1>
+        <canvas id="myCanvas" width="480" height="320"></canvas>
+
+        <!-- Start/Stop Buttons -->
+        <div id="controls">
+            <button id="startBtn">Play</button>
+            <button id="stopBtn">Pause</button>
+        </div>
+    </div>
+
+    <!-- Credits box -->
+    <div id="creditsAlert">Credits</div>
+
+    <script>
+        const canvas = document.getElementById("myCanvas");
+        const ctx = canvas.getContext("2d");
+        let x = canvas.width / 2;
+        let y = canvas.height - 30;
+        let dx = 1;
+        let dy = -1;
+        const ballRadius = 10;
+        const paddleHeight = 10;
+        const paddleWidth = 75;
+        let paddleX = (canvas.width - paddleWidth) / 2;
+        let rightPressed = false;
+        let leftPressed = false;
+        const brickRowCount = 3;
+        const brickColumnCount = 5;
+        const brickWidth = 75;
+        const brickHeight = 30;
+        const brickPadding = 10;
+        const brickOffsetTop = 30;
+        const brickOffsetLeft = 30;
+        let score = 0;
+        let gameRunning = false;
+        const bricks = [];
+
+        const ballImage = new Image();
+        ballImage.src = "img/fire.png";
+
+        const brickImages = [new Image(), new Image(), new Image(), new Image()];
+        brickImages[1].src = "img/ice2.png";
+        brickImages[2].src = "img/ice3.png";
+        brickImages[3].src = "img/ice1.png";
+
+        for (let c = 0; c < brickColumnCount; c++) {
+            bricks[c] = [];
+            for (let r = 0; r < brickRowCount; r++) {
+                bricks[c][r] = { x: 0, y: 0, hitsLeft: 3 };
+            }
+        }
+
+        document.addEventListener("keydown", keyDownHandler, false);
+        document.addEventListener("keyup", keyUpHandler, false);
+
+        function keyDownHandler(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
+            if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true;
+        }
+
+        function keyUpHandler(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
+            if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
+        }
+
+        let ballAngle = 0;          
+        const ballSpin = 0.1;      
+
+    function drawBall() {
+    const size = ballRadius * 2;
+
+    ctx.save();                    
+    ctx.translate(x, y);             
+    ctx.rotate(ballAngle);         
+    ctx.drawImage(                  
+        ballImage,
+        -ballRadius,                
+        -ballRadius,
+        size,
+        size
+    );
+    ctx.restore();                   
+
+    ballAngle += ballSpin;           
+}
+
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+            ctx.fillStyle = "orange";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawBricks() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    const b = bricks[c][r];
+                    if (b.hitsLeft > 0) {
+                        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+                        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+                        b.x = brickX;
+                        b.y = brickY;
+
+                        const img = brickImages[b.hitsLeft];
+                        const imgDrawHeight = brickHeight * 0.7;
+                        const imgDrawWidth = brickWidth;
+                        const drawY = brickY + (brickHeight - imgDrawHeight) / 2;
+
+                        ctx.drawImage(img, brickX, drawY, imgDrawWidth, imgDrawHeight);
+                    }
+                }
+            }
+        }
+
+        function collisionDetection() {
+            let destroyedBricks = 0;
+
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    const b = bricks[c][r];
+
+                    if (b.hitsLeft > 0) {
+                        const brickX = b.x;
+                        const brickY = b.y;
+                        const nextX = x + dx;
+                        const nextY = y + dy;
+
+                        if (
+                            nextX + ballRadius > brickX &&
+                            nextX - ballRadius < brickX + brickWidth &&
+                            nextY + ballRadius > brickY &&
+                            nextY - ballRadius < brickY + brickHeight
+                        ) {
+                            const prevX = x;
+                            const prevY = y;
+
+                            const collidedFromLeft = prevX + ballRadius <= brickX;
+                            const collidedFromRight = prevX - ballRadius >= brickX + brickWidth;
+                            const collidedFromTop = prevY + ballRadius <= brickY;
+                            const collidedFromBottom = prevY - ballRadius >= brickY + brickHeight;
+
+                            if (collidedFromLeft || collidedFromRight) {
+                                dx = -dx;
+                            } else {
+                                dy = -dy;
+                            }
+
+                            b.hitsLeft--;
+                            if (b.hitsLeft === 0) score++;
+                        }
+                    }
+
+                    if (b.hitsLeft === 0) destroyedBricks++;
+                }
+            }
+
+            if (destroyedBricks === brickRowCount * brickColumnCount) {
+                dy=0;
+                dx=0;
+                gameRunning=false;
+                Swal.fire({
+                    title: 'You Win!',
+                    text: 'All ice melted!',
+                    icon: 'success',
+                    confirmButtonText: 'Play again',
+                    background: '#333',
+                    color: '#fff'
+                }).then(() => {
+                    document.location.reload();
+                });
+            }
+        }
+
+        function drawScore() {
+            ctx.font = "16px Comic Sans MS ";
+            ctx.fillStyle = "black";
+            ctx.fillText("Score: " + score, 8, 20);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBricks();
+            drawBall();
+            drawPaddle();
+            drawScore();
+            collisionDetection();
+
+            if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) dx = -dx;
+
+            if (y + dy < ballRadius) {
+                dy = -dy;
+            } else if (y + dy > canvas.height - ballRadius - paddleHeight) {
+                if (x > paddleX && x < paddleX + paddleWidth) {
+                    dy = -Math.abs(dy);
+                    y = canvas.height - ballRadius - paddleHeight;
+                } else if (y + dy > canvas.height - ballRadius) {
+                    dy=0;
+                    dx=0;
+                    gameRunning=false;
+                    Swal.fire({
+                        title: 'Game Over',
+                        text: 'You lost the fireball!',
+                        icon: 'error',
+                        confirmButtonText: 'Try again',
+                        background: '#333',
+                        color: '#fff'
+                    }).then(() => {
+                        document.location.reload();
+                    });
+                }
+            }
+
+            if (rightPressed && paddleX < canvas.width - paddleWidth) {
+                paddleX += 3;
+            } else if (leftPressed && paddleX > 0) {
+                paddleX -= 3;
+            }
+
+            x += dx;
+            y += dy;
+
+            if (gameRunning) {
+                requestAnimationFrame(draw);
+            }
+        }
+
+        // Button listeners
+        document.getElementById("startBtn").addEventListener("click", function () {
+            if (!gameRunning) {
+                gameRunning = true;
+                draw();
+            }
+        });
+
+        document.getElementById("stopBtn").addEventListener("click", function () {
+            gameRunning = false;
+        });
+
+        document.getElementById("creditsAlert").addEventListener("click", function () {
+            Swal.fire({
+                title: 'Credits',
+                html: '<strong>Žak Vrtovec, 4.RA</strong>',
+                icon: 'info',
+                confirmButtonText: 'Cool!',
+                background: '#222',
+                color: '#eee'
+            });
+        });
+    </script>
+    <script src="js/background.js"></script>
+</body>
+</html>
